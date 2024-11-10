@@ -51,6 +51,10 @@ if __name__ == '__main__':
     default_dataset_config = trackeval.datasets.TAO_OW.get_default_dataset_config()
     default_metrics_config = {'METRICS': ['HOTA', 'CLEAR', 'Identity', 'TrackMAP']}
     config = {**default_eval_config, **default_dataset_config, **default_metrics_config}  # Merge default configs
+    config["TRACKERS_TO_EVAL"] = ["basemodel_0.5"]
+    config["GT_FOLDER"] = "/ghome/h2/zhuang/codes/NetTrack2/data/bft/annotations/test_v1.6.json"
+    config["TRACKER_SUB_FOLDER"] = "/ghome/h2/zhuang/codes/NetTrack2/work_dirs/bft_track/basemodel_yolow_x_640/results_0.5.json"
+    config["OUTPUT_FOLDER"] = "/ghome/h2/zhuang/codes/TrackEval/tmp"
     parser = argparse.ArgumentParser()
     for setting in config.keys():
         if type(config[setting]) == list or type(config[setting]) == type(None):

@@ -49,12 +49,19 @@ class TAO_OW(_BaseDataset):
             self.output_fol = self.tracker_fol
         self.output_sub_fol = self.config['OUTPUT_SUB_FOLDER']
 
-        gt_dir_files = [file for file in os.listdir(self.gt_fol) if file.endswith('.json')]
-        if len(gt_dir_files) != 1:
-            raise TrackEvalException(self.gt_fol + ' does not contain exactly one json file.')
+        if self.gt_fol.endswith(".json"):
+            self.gt_data = json.load(open(self.gt_fol, "r"))
+        else:
+            gt_dir_files = [
+                file for file in os.listdir(self.gt_fol) if file.endswith(".json")
+            ]
+            if len(gt_dir_files) != 1:
+                raise TrackEvalException(
+                    f"{self.gt_fol} does not contain exactly one json file."
+                )
 
-        with open(os.path.join(self.gt_fol, gt_dir_files[0])) as f:
-            self.gt_data = json.load(f)
+            with open(os.path.join(self.gt_fol, gt_dir_files[0])) as f:
+                self.gt_data = json.load(f)
 
         self.subset = self.config['SUBSET']
         if self.subset != 'all':
@@ -120,13 +127,20 @@ class TAO_OW(_BaseDataset):
         self.tracker_data = {tracker: dict() for tracker in self.tracker_list}
 
         for tracker in self.tracker_list:
-            tr_dir_files = [file for file in os.listdir(os.path.join(self.tracker_fol, tracker, self.tracker_sub_fol))
-                            if file.endswith('.json')]
-            if len(tr_dir_files) != 1:
-                raise TrackEvalException(os.path.join(self.tracker_fol, tracker, self.tracker_sub_fol)
-                                         + ' does not contain exactly one json file.')
-            with open(os.path.join(self.tracker_fol, tracker, self.tracker_sub_fol, tr_dir_files[0])) as f:
-                curr_data = json.load(f)
+            if self.tracker_sub_fol.endswith(".json"):
+                with open(os.path.join(self.tracker_sub_fol)) as f:
+                    curr_data = json.load(f)
+            else:
+                tr_dir = os.path.join(self.tracker_fol, tracker, self.tracker_sub_fol)
+                tr_dir_files = [
+                    file for file in os.listdir(tr_dir) if file.endswith(".json")
+                ]
+                if len(tr_dir_files) != 1:
+                    raise TrackEvalException(
+                        f"{tr_dir} does not contain exactly one json file."
+                    )
+                with open(os.path.join(tr_dir, tr_dir_files[0])) as f:
+                    curr_data = json.load(f)
 
             # limit detections if MAX_DETECTIONS > 0
             if self.config['MAX_DETECTIONS']:
@@ -317,12 +331,12 @@ class TAO_OW(_BaseDataset):
 
             # Only extract relevant dets for this class for preproc and eval (cls)
             gt_class_mask = np.atleast_1d(raw_data['gt_classes'][t] == cls_id)
-            gt_class_mask = gt_class_mask.astype(np.bool)
+            gt_class_mask = gt_class_mask.astype(bool)
             gt_ids = raw_data['gt_ids'][t][gt_class_mask]
             gt_dets = raw_data['gt_dets'][t][gt_class_mask]
 
             tracker_class_mask = np.atleast_1d(raw_data['tracker_classes'][t] == cls_id)
-            tracker_class_mask = tracker_class_mask.astype(np.bool)
+            tracker_class_mask = tracker_class_mask.astype(bool)
             tracker_ids = raw_data['tracker_ids'][t][tracker_class_mask]
             tracker_dets = raw_data['tracker_dets'][t][tracker_class_mask]
             tracker_confidences = raw_data['tracker_confidences'][t][tracker_class_mask]
@@ -343,7 +357,7 @@ class TAO_OW(_BaseDataset):
             elif is_not_exhaustively_labeled:
                 to_remove_tracker = unmatched_indices
             else:
-                to_remove_tracker = np.array([], dtype=np.int)
+                to_remove_tracker = np.array([], dtype=int)
 
             # remove all unwanted unmatched tracker detections
             data['tracker_ids'][t] = np.delete(tracker_ids, to_remove_tracker, axis=0)
@@ -367,14 +381,14 @@ class TAO_OW(_BaseDataset):
             gt_id_map[unique_gt_ids] = np.arange(len(unique_gt_ids))
             for t in range(raw_data['num_timesteps']):
                 if len(data['gt_ids'][t]) > 0:
-                    data['gt_ids'][t] = gt_id_map[data['gt_ids'][t]].astype(np.int)
+                    data['gt_ids'][t] = gt_id_map[data['gt_ids'][t]].astype(int)
         if len(unique_tracker_ids) > 0:
             unique_tracker_ids = np.unique(unique_tracker_ids)
             tracker_id_map = np.nan * np.ones((np.max(unique_tracker_ids) + 1))
             tracker_id_map[unique_tracker_ids] = np.arange(len(unique_tracker_ids))
             for t in range(raw_data['num_timesteps']):
                 if len(data['tracker_ids'][t]) > 0:
-                    data['tracker_ids'][t] = tracker_id_map[data['tracker_ids'][t]].astype(np.int)
+                    data['tracker_ids'][t] = tracker_id_map[data['tracker_ids'][t]].astype(int)
 
         # Record overview statistics.
         data['num_tracker_dets'] = num_tracker_dets
